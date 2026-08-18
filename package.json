@@ -1,0 +1,149 @@
+{
+  "name": "neurocode",
+  "displayName": "NeuroCode Software Quality Analyzer",
+  "description": "AI-assisted QA copilot for any VS Code project: detects project type, generates positive/negative/boundary/regression test cases with AI, executes them via the right engine, and reports pass/fail results with evidence inside the IDE.",
+  "version": "0.1.0",
+  "publisher": "neurocode",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Testing",
+    "Linters",
+    "Visualization"
+  ],
+  "keywords": [
+    "testing",
+    "qa",
+    "ai",
+    "test-generation",
+    "playwright",
+    "quality"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "neurocode.scanProject",
+        "title": "NeuroCode: Scan Project"
+      },
+      {
+        "command": "neurocode.generateTests",
+        "title": "NeuroCode: Generate Test Cases"
+      },
+      {
+        "command": "neurocode.runTests",
+        "title": "NeuroCode: Run Tests"
+      },
+      {
+        "command": "neurocode.rerunFailed",
+        "title": "NeuroCode: Rerun Failed Tests"
+      },
+      {
+        "command": "neurocode.showDashboard",
+        "title": "NeuroCode: Show QA Dashboard"
+      },
+      {
+        "command": "neurocode.exportReport",
+        "title": "NeuroCode: Export Report"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "neurocode-activity",
+          "title": "NeuroCode",
+          "icon": "assets/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "neurocode-activity": [
+        {
+          "id": "neurocode.sidebar",
+          "name": "QA Pipeline",
+          "icon": "assets/icon.svg"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "neurocode.scanProject",
+          "when": "view == neurocode.sidebar",
+          "group": "navigation"
+        },
+        {
+          "command": "neurocode.showDashboard",
+          "when": "view == neurocode.sidebar",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "NeuroCode",
+      "properties": {
+        "neurocode.apiBaseUrl": {
+          "type": "string",
+          "default": "https://api.openai.com/v1",
+          "description": "OpenAI-compatible API base URL used for AI test case generation."
+        },
+        "neurocode.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for the LLM provider. Leave empty to use the NEUROCODE_API_KEY environment variable or the built-in mock generator."
+        },
+        "neurocode.model": {
+          "type": "string",
+          "default": "gpt-4o-mini",
+          "description": "Model id used for AI test case generation."
+        },
+        "neurocode.maxTestCases": {
+          "type": "number",
+          "default": 20,
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Maximum number of test cases generated per run."
+        },
+        "neurocode.playwrightHeadless": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run Playwright browser tests in headless mode."
+        },
+        "neurocode.appUrl": {
+          "type": "string",
+          "default": "http://localhost:3000",
+          "description": "Base URL used when executing web frontend tests. Override when your dev server runs on another port."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile && npm run build:webview",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "build:webview": "node esbuild.mjs",
+    "watch:webview": "node esbuild.mjs --watch",
+    "dev": "npm run build:webview && npm run compile",
+    "package": "npm run dev && vsce package",
+    "lint": "tsc --noEmit -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.2.1",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "playwright-core": "^1.49.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  }
+}

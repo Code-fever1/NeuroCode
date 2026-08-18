@@ -1,0 +1,342 @@
+:root {
+  --bg: #1e1e1e;
+  --bg-alt: #252526;
+  --bg-hover: #2a2d2e;
+  --border: #3c3c3c;
+  --fg: #d4d4d4;
+  --fg-dim: #9d9d9d;
+  --accent: #3794ff;
+  --green: #4ec9b0;
+  --red: #f14c4c;
+  --amber: #d7ba7d;
+  --purple: #c586c0;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--vscode-font-family, 'Segoe UI', sans-serif);
+  font-size: 13px;
+  color: var(--fg);
+  background: var(--bg);
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+}
+
+.app-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.app-header h1 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.project-type {
+  font-size: 11px;
+  color: var(--fg-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.error-banner {
+  background: rgba(241, 76, 76, 0.15);
+  border: 1px solid var(--red);
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 12px;
+  color: var(--red);
+  word-break: break-word;
+}
+
+/* ---- Actions ----------------------------------------------------------- */
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.actions-row {
+  display: flex;
+  gap: 6px;
+}
+
+.btn {
+  flex: 1;
+  background: var(--bg-alt);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.btn.primary {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn.accent {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.btn.danger {
+  color: var(--red);
+  border-color: var(--red);
+  flex: 0 0 auto;
+}
+
+/* ---- Project card ------------------------------------------------------ */
+
+.project-card {
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px;
+}
+
+.project-name {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.project-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--fg-dim);
+}
+
+/* ---- Summary ----------------------------------------------------------- */
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.summary-card {
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 4px;
+  text-align: center;
+}
+
+.summary-value {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.summary-label {
+  font-size: 10px;
+  color: var(--fg-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.summary-card.ok .summary-value { color: var(--green); }
+.summary-card.bad .summary-value { color: var(--red); }
+.summary-card.warn .summary-value { color: var(--amber); }
+.summary-card.muted .summary-value { color: var(--fg-dim); }
+
+.summary-bar {
+  height: 6px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.summary-bar-fill {
+  height: 100%;
+  background: var(--green);
+  transition: width 0.3s ease;
+}
+
+.summary-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--fg-dim);
+}
+
+/* ---- Test list --------------------------------------------------------- */
+
+.test-list h2 {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.test-group h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--fg-dim);
+  margin: 10px 0 4px;
+}
+
+.test-group ul {
+  list-style: none;
+}
+
+.test-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.test-row:hover {
+  background: var(--bg-hover);
+}
+
+.test-row.selected {
+  background: rgba(55, 148, 255, 0.12);
+}
+
+.test-toggle {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  background: var(--bg-alt);
+  color: var(--fg-dim);
+  border-radius: 4px;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.test-toggle:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.test-row.passed .test-toggle { color: var(--green); border-color: var(--green); }
+.test-row.failed .test-toggle { color: var(--red); border-color: var(--red); }
+.test-row.error .test-toggle { color: var(--amber); border-color: var(--amber); }
+
+.test-title {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--fg);
+  font-size: 12px;
+  cursor: pointer;
+  line-height: 1.35;
+  overflow: hidden;
+}
+
+.engine-tag {
+  display: inline-block;
+  font-size: 9px;
+  color: var(--purple);
+  border: 1px solid var(--purple);
+  border-radius: 3px;
+  padding: 0 3px;
+  margin-right: 5px;
+  text-transform: uppercase;
+  vertical-align: 1px;
+}
+
+.empty {
+  color: var(--fg-dim);
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* ---- Test detail ------------------------------------------------------- */
+
+.test-detail {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.test-detail h2 {
+  font-size: 13px;
+}
+
+.test-detail h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+  margin-top: 4px;
+}
+
+.detail-expected {
+  font-size: 12px;
+  color: var(--fg-dim);
+}
+
+.spec,
+.evidence {
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 11px;
+  font-family: var(--vscode-editor-font-family, 'Consolas', monospace);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.evidence.error {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.result-message {
+  font-size: 12px;
+}
+
+.result-message.passed { color: var(--green); }
+.result-message.failed { color: var(--red); }
+.result-message.error { color: var(--amber); }
+
+.evidence-img {
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
