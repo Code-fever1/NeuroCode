@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as crypto from 'node:crypto';
 import { PipelineState, WebviewRequest, WebviewResponse } from '../shared/types';
 
 /**
@@ -18,10 +19,12 @@ export class NeuroCodePanel implements vscode.WebviewViewProvider {
 
   resolveWebviewView(webviewView: vscode.WebviewView): void {
     this.view = webviewView;
+
     webviewView.webview.options = {
       enableScripts: true,
       localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview')],
     };
+
     webviewView.webview.html = this.renderHtml(webviewView.webview);
 
     webviewView.webview.onDidReceiveMessage((message: WebviewRequest) => this.onMessage(message));
@@ -38,6 +41,7 @@ export class NeuroCodePanel implements vscode.WebviewViewProvider {
   }
 
   private renderHtml(webview: vscode.Webview): string {
+    const nonce = crypto.randomUUID();
     const bundleUri = webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview', 'bundle.js'));
     const stylesUri = webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview', 'styles.css'));
 
@@ -45,7 +49,7 @@ export class NeuroCodePanel implements vscode.WebviewViewProvider {
       "default-src 'none'",
       `img-src ${webview.cspSource} data:;`,
       `style-src ${webview.cspSource} 'unsafe-inline';`,
-      `script-src ${webview.cspSource};`,
+      `script-src 'nonce-${nonce}';`,
       'font-src data:;',
     ].join(' ');
 
@@ -59,8 +63,33 @@ export class NeuroCodePanel implements vscode.WebviewViewProvider {
   <title>NeuroCode QA Dashboard</title>
 </head>
 <body>
-  <div id="root"></div>
-  <script src="${bundleUri}"></script>
+  <div id="root">
+    <div id="loading" style="display:flex;align-items:center;justify-content:center;height:100vh;color:var(--vscode-descriptionForeground,#9d9d9d);font-family:var(--vscode-font-family,sans-serif);font-size:13px;">
+      Loading NeuroCode...
+    </div>
+  </div>
+  <script nonce="${nonce}" src="${bundleUri}"></script>
+  <script nonce="${nonce}">
+    // Remove loading indicator once React has mounted
+    (function() {
+      var check = setInterval(function() {
+        var root = document.getElementById('root');
+        var loading = document.getElementById('loading');
+        if (loading && root && root.children.length > 1) {
+          loading.remove();
+          clearInterval(check);
+        }
+      }, 100);
+      // Safety: remove after 10s even if React didn't mount
+      setTimeout(function() {
+        var loading = document.getElementById('loading');
+        if (loading) {
+          loading.textContent = 'NeuroCode UI failed to load. Check the extension host log for errors.';
+          loading.style.color = '#f14c4c';
+        }
+      }, 10000);
+    })();
+  </script>
 </body>
 </html>`;
   }

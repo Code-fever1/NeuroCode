@@ -29,27 +29,33 @@
     "commands": [
       {
         "command": "neurocode.scanProject",
-        "title": "NeuroCode: Scan Project"
+        "title": "NeuroCode: Scan Project",
+        "icon": "$(search)"
       },
       {
         "command": "neurocode.generateTests",
-        "title": "NeuroCode: Generate Test Cases"
+        "title": "NeuroCode: Generate Test Cases",
+        "icon": "$(sparkle)"
       },
       {
         "command": "neurocode.runTests",
-        "title": "NeuroCode: Run Tests"
+        "title": "NeuroCode: Run Tests",
+        "icon": "$(play)"
       },
       {
         "command": "neurocode.rerunFailed",
-        "title": "NeuroCode: Rerun Failed Tests"
+        "title": "NeuroCode: Rerun Failed Tests",
+        "icon": "$(debug-restart)"
       },
       {
         "command": "neurocode.showDashboard",
-        "title": "NeuroCode: Show QA Dashboard"
+        "title": "NeuroCode: Show QA Dashboard",
+        "icon": "$(layout-sidebar-left)"
       },
       {
         "command": "neurocode.exportReport",
-        "title": "NeuroCode: Export Report"
+        "title": "NeuroCode: Export Report",
+        "icon": "$(export)"
       }
     ],
     "viewsContainers": {
@@ -75,12 +81,22 @@
         {
           "command": "neurocode.scanProject",
           "when": "view == neurocode.sidebar",
-          "group": "navigation"
+          "group": "navigation@1"
         },
         {
-          "command": "neurocode.showDashboard",
+          "command": "neurocode.generateTests",
           "when": "view == neurocode.sidebar",
-          "group": "navigation"
+          "group": "navigation@2"
+        },
+        {
+          "command": "neurocode.runTests",
+          "when": "view == neurocode.sidebar",
+          "group": "navigation@3"
+        },
+        {
+          "command": "neurocode.exportReport",
+          "when": "view == neurocode.sidebar",
+          "group": "navigation@4"
         }
       ]
     },

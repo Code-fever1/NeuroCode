@@ -5,7 +5,19 @@ import { PipelineActions } from './components/PipelineActions';
 import { TestList } from './components/TestList';
 import { TestDetail } from './components/TestDetail';
 
-const vscode = acquireVsCodeApi();
+// Safely acquire the VS Code API — the extension host injects this globally.
+// If it's missing (e.g. opened outside VS Code), fall back to a no-op so the
+// UI still renders instead of crashing with a blank screen.
+const vscode: { postMessage: (msg: unknown) => void } = (() => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const api = (globalThis as any).acquireVsCodeApi?.();
+    if (api) return api;
+  } catch {
+    // ignore
+  }
+  return { postMessage: () => undefined };
+})();
 
 const EMPTY_STATE: PipelineState = {
   tests: [],
@@ -17,7 +29,6 @@ const EMPTY_STATE: PipelineState = {
 export function App() {
   const [state, setState] = useState<PipelineState>(EMPTY_STATE);
   const [selectedTestId, setSelectedTestId] = useState<string | undefined>();
-  const [lastRun, setLastRun] = useState<TestReport | undefined>();
 
   useEffect(() => {
     const handler = (event: MessageEvent<WebviewResponse>) => {
@@ -30,7 +41,6 @@ export function App() {
         case 'runProgress':
         case 'runDone':
           setState(msg.state);
-          if (msg.state.report) setLastRun(msg.state.report);
           break;
         case 'error':
           setState((s) => ({ ...s, lastError: msg.message }));
@@ -47,13 +57,18 @@ export function App() {
   }, []);
 
   const selectedTest = state.tests.find((t) => t.id === selectedTestId);
-  const report = state.report ?? lastRun;
+  const report = state.report;
 
   return (
     <div className="app">
       <header className="app-header">
-        <h1>NeuroCode</h1>
-        <span className="project-type">{state.projectType ?? 'no project scanned'}</span>
+        <div className="app-logo">
+          <span className="logo-icon">N</span>
+          <span className="logo-text">NeuroCode</span>
+        </div>
+        {state.projectType && (
+          <span className="project-type-badge">{state.projectType}</span>
+        )}
       </header>
 
       <PipelineActions
@@ -65,7 +80,12 @@ export function App() {
         onExport={() => post({ type: 'exportReport' })}
       />
 
-      {state.lastError && <div className="error-banner">{state.lastError}</div>}
+      {state.lastError && (
+        <div className="error-banner">
+          <span className="error-icon">!</span>
+          {state.lastError}
+        </div>
+      )}
 
       {state.projectName && (
         <div className="project-card">
@@ -74,6 +94,21 @@ export function App() {
             {state.scannedAt && <span>Scanned {new Date(state.scannedAt).toLocaleTimeString()}</span>}
             {state.structureSummary && <span>{state.structureSummary}</span>}
           </div>
+        </div>
+      )}
+
+      {!state.projectName && !state.scanning && (
+        <div className="empty-state">
+          <div className="empty-icon">scan</div>
+          <p>No project scanned yet.</p>
+          <p className="empty-hint">Click <strong>Scan Project</strong> to detect the project type and extract testable elements.</p>
+        </div>
+      )}
+
+      {state.scanning && (
+        <div className="loading-state">
+          <div className="spinner" />
+          <p>Scanning project structure...</p>
         </div>
       )}
 

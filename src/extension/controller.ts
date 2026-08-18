@@ -56,7 +56,10 @@ export class NeuroCodeController {
   }
 
   private reveal(): void {
+    // Reveal the NeuroCode sidebar view
+    void vscode.commands.executeCommand('workbench.view.extension.neurocode-activity');
     void vscode.commands.executeCommand('neurocode.sidebar.focus');
+    this.pushState();
   }
 
   // ---- Commands ---------------------------------------------------------

@@ -28,7 +28,7 @@ export function TestDetail({ test, result, onDelete }: Props) {
         </>
       )}
 
-      <button className="btn danger" onClick={onDelete}>
+      <button className="action-btn danger" onClick={onDelete}>
         Delete test
       </button>
     </section>
