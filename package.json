@@ -22,9 +22,10 @@
     "quality"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onView:neurocode.sidebar"
   ],
-  "main": "./dist/extension.js",
+  "main": "./dist/extension/extension.js",
   "contributes": {
     "commands": [
       {
