@@ -63,7 +63,10 @@ export class PlaywrightRunner implements ExecutionEngine {
 
     switch (action.type) {
       case 'goto': {
-        const url = action.url ?? baseUrl;
+        const raw = action.url && action.url.length > 0 ? action.url : baseUrl;
+        const url = /^https?:\/\//i.test(raw)
+          ? raw
+          : new URL(raw, baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`).href;
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout });
         break;
       }

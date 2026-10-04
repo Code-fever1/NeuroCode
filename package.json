@@ -23,7 +23,7 @@
   ],
   "activationEvents": [
     "onStartupFinished",
-    "onView:neurocode.sidebar"
+    "onView:neurocodeDashboard"
   ],
   "main": "./dist/extension/extension.js",
   "contributes": {
@@ -62,18 +62,18 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "neurocode-activity",
+          "id": "neurocode-qa",
           "title": "NeuroCode",
           "icon": "assets/icon.svg"
         }
       ]
     },
     "views": {
-      "neurocode-activity": [
+      "neurocode-qa": [
         {
-          "id": "neurocode.sidebar",
-          "name": "QA Pipeline",
-          "icon": "assets/icon.svg"
+          "type": "webview",
+          "id": "neurocodeDashboard",
+          "name": "QA Pipeline"
         }
       ]
     },
@@ -81,22 +81,22 @@
       "view/title": [
         {
           "command": "neurocode.scanProject",
-          "when": "view == neurocode.sidebar",
+          "when": "view == neurocodeDashboard",
           "group": "navigation@1"
         },
         {
           "command": "neurocode.generateTests",
-          "when": "view == neurocode.sidebar",
+          "when": "view == neurocodeDashboard",
           "group": "navigation@2"
         },
         {
           "command": "neurocode.runTests",
-          "when": "view == neurocode.sidebar",
+          "when": "view == neurocodeDashboard",
           "group": "navigation@3"
         },
         {
           "command": "neurocode.exportReport",
-          "when": "view == neurocode.sidebar",
+          "when": "view == neurocodeDashboard",
           "group": "navigation@4"
         }
       ]
@@ -140,14 +140,15 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile && npm run build:webview",
+    "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "build:webview": "node esbuild.mjs",
     "watch:webview": "node esbuild.mjs --watch",
     "dev": "npm run build:webview && npm run compile",
     "package": "npm run dev && vsce package",
-    "lint": "tsc --noEmit -p ./"
+    "lint": "tsc --noEmit -p ./",
+    "test:extension": "node test/launch.js"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

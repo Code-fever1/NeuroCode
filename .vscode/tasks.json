@@ -3,13 +3,20 @@
   "tasks": [
     {
       "type": "npm",
-      "script": "dev",
-      "label": "npm: dev",
+      "script": "compile",
+      "label": "npm: compile",
       "problemMatcher": "$tsc",
       "group": {
         "kind": "build",
         "isDefault": true
       }
+    },
+    {
+      "type": "npm",
+      "script": "dev",
+      "label": "npm: dev",
+      "problemMatcher": "$tsc",
+      "group": "build"
     },
     {
       "type": "npm",

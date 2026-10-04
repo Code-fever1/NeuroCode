@@ -20,6 +20,7 @@ const vscode: { postMessage: (msg: unknown) => void } = (() => {
 })();
 
 const EMPTY_STATE: PipelineState = {
+  findings: [],
   tests: [],
   generating: false,
   scanning: false,

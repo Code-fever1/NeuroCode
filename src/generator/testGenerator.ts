@@ -1,6 +1,7 @@
-import { ProjectStructure, TestCase, TestCategory } from '../shared/types';
+import { PlanStep, ProjectStructure, TestCase, TestCategory, TestPriority } from '../shared/types';
 import { LlmProvider } from './llmProvider';
 import { MockGenerator } from './mockGenerator';
+import { priorityFor, stepsForTest } from './planSteps';
 
 export interface GenerationConfig {
   apiBaseUrl: string;
@@ -33,7 +34,7 @@ export class TestGenerator {
 
     if (!this.config.apiKey) {
       options.onProgress?.('No API key configured — using rule-based mock generator.');
-      return new MockGenerator(this.structure).generate().slice(0, this.config.maxTestCases);
+      return new MockGenerator(this.structure, this.config.appUrl).generate().slice(0, this.config.maxTestCases);
     }
 
     options.onProgress?.('Calling LLM for test case generation...');
@@ -50,7 +51,7 @@ export class TestGenerator {
 
     if (tests.length === 0) {
       options.onProgress?.('LLM returned no usable tests — falling back to mock generator.');
-      return new MockGenerator(this.structure).generate().slice(0, this.config.maxTestCases);
+      return new MockGenerator(this.structure, this.config.appUrl).generate().slice(0, this.config.maxTestCases);
     }
     return tests.slice(0, this.config.maxTestCases);
   }
@@ -106,7 +107,7 @@ export class TestGenerator {
     return [
       'You are NeuroCode, an expert software QA engineer that generates structured test cases from a project scan.',
       'You MUST respond with a single JSON object of the form:',
-      '{"tests": [ { "category": "positive|negative|boundary|regression", "title": "short title", "description": "what is being tested", "engine": "http|browser|process", "spec": {...}, "expected": "observable expected behavior" } ]}',
+      '{"tests": [ { "category": "positive|negative|boundary|regression", "priority": "high|medium|low", "title": "short title", "description": "what is being tested", "steps": [ { "type": "action|assertion", "description": "one concrete step" } ], "engine": "http|browser|process", "spec": {...}, "expected": "observable expected behavior" } ]}',
       '',
       'Rules:',
       '- Generate a balanced mix of positive, negative, boundary, and regression cases.',
@@ -114,6 +115,7 @@ export class TestGenerator {
       '- For engine "browser": spec = { "url": "http://localhost:3000/path", "actions": [ { "type": "goto|click|fill|press|waitFor|expectText|expectUrl|screenshot", "selector": "css selector", "value": "text to type", "text": "expected text", "url": "expected url" } ] }.',
       '- For engine "process": spec = { "command": "npm", "args": [...], "expectExitCode": 0, "expectOutputContains": ["..."] }.',
       '- Never invent endpoints, routes, fields, or files that are not present in the provided context.',
+      '- Every test needs at least one action step and one assertion step. The assertion must match "expected".',
       '- "regression" cases should re-verify a key flow that recently changed or is critical.',
       '- Keep every title under 90 characters and every "expected" under 200 characters.',
     ].join('\n');
@@ -159,14 +161,18 @@ export class TestGenerator {
       const spec = this.normalizeSpec(rec.spec, engine);
       if (!spec) continue;
 
+      const expected = typeof rec.expected === 'string' ? rec.expected : 'No expectation provided.';
+      const draft: Pick<TestCase, 'engine' | 'spec' | 'expected'> = { engine, spec, expected };
       tests.push({
-        id: `g${++n}`,
+        id: `TC${String(++n).padStart(3, '0')}`,
         category,
+        priority: this.readPriority(rec.priority, category),
         title,
         description: typeof rec.description === 'string' ? rec.description : title,
+        steps: this.readSteps(rec.steps, stepsForTest(draft)),
         engine,
         spec,
-        expected: typeof rec.expected === 'string' ? rec.expected : 'No expectation provided.',
+        expected,
       });
     }
     return tests;
@@ -222,6 +228,24 @@ export class TestGenerator {
     }
 
     return undefined;
+  }
+
+  private readPriority(value: unknown, category: TestCategory): TestPriority {
+    if (value === 'high' || value === 'medium' || value === 'low') return value;
+    return priorityFor(category);
+  }
+
+  private readSteps(value: unknown, fallback: PlanStep[]): PlanStep[] {
+    if (!Array.isArray(value)) return fallback;
+    const steps: PlanStep[] = [];
+    for (const step of value) {
+      if (!step || typeof step !== 'object') continue;
+      const rec = step as Record<string, unknown>;
+      const description = typeof rec.description === 'string' ? rec.description.trim() : '';
+      if (!description) continue;
+      steps.push({ type: rec.type === 'assertion' ? 'assertion' : 'action', description });
+    }
+    return steps.length > 0 ? steps : fallback;
   }
 
   private stringMap(value: unknown): Record<string, string> | undefined {

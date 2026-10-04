@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'node:path';
 import { ApiStructure, RouteInfo } from '../shared/types';
+import { isInComment, SCAN_EXCLUDE } from './ignore';
 
 /**
  * Structural scanner for backend/API projects.
@@ -35,6 +36,7 @@ export class ApiScanner {
         const re = new RegExp(`\\.${method}\\s*\\(\\s*["'\`]([^"'\`]+)["'\`]`, 'g');
         let m: RegExpExecArray | null;
         while ((m = re.exec(text))) {
+          if (isInComment(text, m.index)) continue;
           endpoints.push({ method: method.toUpperCase(), path: m[1], file, line: this.lineAt(text, m.index) });
         }
       }
@@ -43,6 +45,7 @@ export class ApiScanner {
       const decoratorRe = /@(Get|Post|Put|Patch|Delete|Head|Options)\(\s*["']([^"']+)["']\s*\)/g;
       let d: RegExpExecArray | null;
       while ((d = decoratorRe.exec(text))) {
+        if (isInComment(text, d.index)) continue;
         endpoints.push({ method: d[1].toUpperCase(), path: d[2], file, line: this.lineAt(text, d.index) });
       }
 
@@ -50,11 +53,12 @@ export class ApiScanner {
       const routeRe = /\.route\(\s*["']([^"']+)["']\s*\)/g;
       let r: RegExpExecArray | null;
       while ((r = routeRe.exec(text))) {
+        if (isInComment(text, r.index)) continue;
         endpoints.push({ method: 'ANY', path: r[1], file, line: this.lineAt(text, r.index) });
       }
     }
 
-    return endpoints;
+    return dedupeEndpoints(endpoints);
   }
 
   private async findSchemas(): Promise<ApiStructure['schemas']> {
@@ -106,7 +110,7 @@ export class ApiScanner {
   }
 
   private async files(glob: string): Promise<string[]> {
-    const uris = await vscode.workspace.findFiles(glob, '**/node_modules/**', 5000);
+    const uris = await vscode.workspace.findFiles(glob, SCAN_EXCLUDE, 2000);
     return uris.map((u) => u.fsPath).filter((p) => !p.includes('/node_modules/'));
   }
 
@@ -122,4 +126,16 @@ export class ApiScanner {
   private lineAt(text: string, index: number): number {
     return text.slice(0, index).split('\n').length;
   }
+}
+
+function dedupeEndpoints(endpoints: RouteInfo[]): RouteInfo[] {
+  const map = new Map<string, RouteInfo>();
+  for (const ep of endpoints) {
+    const key = `${ep.method} ${ep.path}`;
+    if (!map.has(key)) map.set(key, ep);
+  }
+  const specificPaths = new Set(
+    [...map.values()].filter((ep) => ep.method !== 'ANY').map((ep) => ep.path),
+  );
+  return [...map.values()].filter((ep) => ep.method !== 'ANY' || !specificPaths.has(ep.path));
 }
