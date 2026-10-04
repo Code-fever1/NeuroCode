@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { PipelineState, ProjectStructure, TestReport, WebviewRequest } from '../shared/types';
+import { buildFindings } from '../scanner/findings';
 import { ProjectScanner } from '../scanner/scanner';
 import { TestGenerator } from '../generator/testGenerator';
 import { Executor } from '../executor/executor';
@@ -13,6 +14,7 @@ import { NeuroCodePanel } from '../panel/neurocodePanel';
  */
 export class NeuroCodeController {
   private state: PipelineState = {
+    findings: [],
     tests: [],
     generating: false,
     scanning: false,
@@ -37,9 +39,13 @@ export class NeuroCodeController {
 
   /** Register the sidebar webview provider and the command palette actions. */
   register(): void {
+    console.log('[NeuroCode] controller.register start');
     this.context.subscriptions.push(
-      vscode.window.registerWebviewViewProvider(NeuroCodePanel.viewType, this.panel),
+      vscode.window.registerWebviewViewProvider(NeuroCodePanel.viewType, this.panel, {
+        webviewOptions: { retainContextWhenHidden: true },
+      }),
     );
+    console.log('[NeuroCode] registered view provider for', NeuroCodePanel.viewType);
 
     const commands: Array<[string, () => void | Promise<void>]> = [
       ['neurocode.scanProject', () => this.scanProject()],
@@ -56,16 +62,31 @@ export class NeuroCodeController {
   }
 
   private reveal(): void {
-    void vscode.commands.executeCommand('neurocode.sidebar.focus');
+    // Reveal the NeuroCode sidebar view
+    void vscode.commands.executeCommand('workbench.view.extension.neurocode-qa');
+    void vscode.commands.executeCommand('neurocodeDashboard.focus');
+    this.pushState();
   }
 
   // ---- Commands ---------------------------------------------------------
 
   async scanProject(): Promise<void> {
+    if (!this.workspaceRoot) {
+      this.state.lastError = 'Open a project folder in this window, then scan again.';
+      this.pushState();
+      return;
+    }
+
     this.state.scanning = true;
+    this.state.generating = false;
     this.state.lastError = undefined;
+    this.state.findings = [];
+    this.state.tests = [];
+    this.state.report = undefined;
+    this.state.targetUrl = this.readTargetUrl();
     this.pushState();
 
+    let scanned = false;
     try {
       const scanner = new ProjectScanner();
       this.structure = await scanner.scan(this.workspaceRoot, {
@@ -74,12 +95,12 @@ export class NeuroCodeController {
       this.state.projectName = this.structure.name;
       this.state.projectType = this.structure.projectType;
       this.state.scannedAt = new Date().toISOString();
+      this.state.findings = buildFindings(this.structure);
       this.state.structureSummary = this.describeStructure(this.structure);
-      this.state.tests = [];
-      this.state.report = undefined;
+      scanned = true;
 
       void vscode.window.showInformationMessage(
-        `NeuroCode: detected ${this.structure.projectType} project "${this.structure.name}"`,
+        `NeuroCode: detected ${this.structure.projectType} project "${this.structure.name}" — ${this.state.structureSummary}`,
       );
     } catch (err) {
       this.state.lastError = err instanceof Error ? err.message : String(err);
@@ -87,6 +108,10 @@ export class NeuroCodeController {
     } finally {
       this.state.scanning = false;
       this.pushState();
+    }
+
+    if (scanned) {
+      await this.generateTests();
     }
   }
 
@@ -103,6 +128,7 @@ export class NeuroCodeController {
 
     try {
       const config = vscode.workspace.getConfiguration('neurocode');
+      this.state.targetUrl = config.get<string>('appUrl') ?? 'http://localhost:3000';
       const generator = new TestGenerator(this.structure, {
         apiBaseUrl: config.get<string>('apiBaseUrl') ?? 'https://api.openai.com/v1',
         apiKey: config.get<string>('apiKey') ?? process.env.NEUROCODE_API_KEY ?? '',
@@ -270,7 +296,14 @@ export class NeuroCodeController {
     if (s.cli) {
       parts.push(`${s.cli.commands.length} commands`);
     }
+    if (s.sourceFileCount) {
+      parts.push(`${s.sourceFileCount} files`);
+    }
     return parts.join(' · ');
+  }
+
+  private readTargetUrl(): string {
+    return vscode.workspace.getConfiguration('neurocode').get<string>('appUrl') ?? 'http://localhost:3000';
   }
 
   private emptyReport(total: number): TestReport {

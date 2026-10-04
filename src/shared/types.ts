@@ -8,6 +8,21 @@ export type ProjectType = 'web' | 'api' | 'electron' | 'cli' | 'node-backend' | 
 
 export type TestCategory = 'positive' | 'negative' | 'boundary' | 'regression';
 
+export type TestPriority = 'high' | 'medium' | 'low';
+
+/** One human-readable step in a test plan, same shape TestSprite uses. */
+export interface PlanStep {
+  type: 'action' | 'assertion';
+  description: string;
+}
+
+/** One row in the sidebar inventory produced by a project scan. */
+export interface ScanFinding {
+  group: string;
+  label: string;
+  detail: string;
+}
+
 export type EngineKind = 'http' | 'browser' | 'process';
 
 /** ---- Project scan results ------------------------------------------- */
@@ -64,6 +79,9 @@ export interface ProjectStructure {
   web?: WebStructure;
   api?: ApiStructure;
   cli?: CliStructure;
+  /** Workspace-relative source files the scan actually opened, capped for the sidebar. */
+  sourceFiles?: string[];
+  sourceFileCount?: number;
 }
 
 /** ---- Test case model ------------------------------------------------ */
@@ -71,8 +89,12 @@ export interface ProjectStructure {
 export interface TestCase {
   id: string;
   category: TestCategory;
+  priority: TestPriority;
   title: string;
+  /** What this case is checking, in plain language. */
   description: string;
+  /** Action and assertion steps shown before the case is run. */
+  steps: PlanStep[];
   engine: EngineKind;
   spec: HttpSpec | BrowserSpec | ProcessSpec;
   expected: string;
@@ -169,6 +191,9 @@ export interface PipelineState {
   projectType?: ProjectType;
   scannedAt?: string;
   structureSummary?: string;
+  /** Base URL the generated HTTP and browser cases will call. */
+  targetUrl?: string;
+  findings: ScanFinding[];
   tests: TestCase[];
   report?: TestReport;
   generating: boolean;

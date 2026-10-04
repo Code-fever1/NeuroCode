@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'node:path';
 import { CliStructure } from '../shared/types';
+import { isInComment, SCAN_EXCLUDE } from './ignore';
 
 /**
  * Structural scanner for CLI tools and command-based projects.
@@ -27,6 +28,7 @@ export class CliScanner {
       const commanderRe = /\.command\(\s*["']([^"']+)["']/g;
       let m: RegExpExecArray | null;
       while ((m = commanderRe.exec(text))) {
+        if (isInComment(text, m.index)) continue;
         const [name, ...args] = m[1].split(/\s+/);
         commands.push({ name, args, file });
       }
@@ -35,7 +37,9 @@ export class CliScanner {
       const yargsRe = /\.command\(\s*\[?\s*["']([^"']+)["']/g;
       let y: RegExpExecArray | null;
       while ((y = yargsRe.exec(text))) {
+        if (isInComment(text, y.index)) continue;
         const [name, ...args] = y[1].split(/\s+/);
+        if (commands.some((c) => c.name === name && c.file === file)) continue;
         commands.push({ name, args, file });
       }
     }
@@ -59,7 +63,7 @@ export class CliScanner {
   }
 
   private async files(glob: string): Promise<string[]> {
-    const uris = await vscode.workspace.findFiles(glob, '**/node_modules/**', 5000);
+    const uris = await vscode.workspace.findFiles(glob, SCAN_EXCLUDE, 2000);
     return uris.map((u) => u.fsPath).filter((p) => !p.includes('/node_modules/'));
   }
 

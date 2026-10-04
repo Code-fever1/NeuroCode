@@ -5,6 +5,7 @@ import { detectProjectType, DetectionResult } from './detector';
 import { WebScanner } from './webScanner';
 import { ApiScanner } from './apiScanner';
 import { CliScanner } from './cliScanner';
+import { SCAN_EXCLUDE } from './ignore';
 
 export interface ScanOptions {
   onProgress?: (message: string) => void;
@@ -37,41 +38,36 @@ export class ProjectScanner {
       structure.devDependencies = Object.keys((pkg.devDependencies as Record<string, string>) ?? {});
     }
 
-    options.onProgress?.('Scanning project structure...');
+    options.onProgress?.('Scanning pages, endpoints, and commands...');
 
-    switch (detection.projectType) {
-      case 'web':
-      case 'electron': {
-        const web = new WebScanner(workspaceRoot);
-        structure.web = await web.scan(detection.framework);
-        break;
-      }
-      case 'api': {
-        const api = new ApiScanner(workspaceRoot);
-        structure.api = await api.scan(detection.framework);
-        break;
-      }
-      case 'cli': {
-        const cli = new CliScanner(workspaceRoot);
-        structure.cli = await cli.scan();
-        break;
-      }
-      case 'node-backend': {
-        // Hybrid: scan both API endpoints and web structure when ambiguous.
-        const [api, web] = await Promise.all([
-          new ApiScanner(workspaceRoot).scan(detection.framework),
-          new WebScanner(workspaceRoot).scan(detection.framework),
-        ]);
-        structure.api = api;
-        structure.web = web;
-        break;
-      }
-      default:
-        break;
-    }
+    // Always scan every surface. The detected type picks the primary engine,
+    // but the inventory and the test plan include whatever is actually in the tree.
+    const [web, api, cli, files] = await Promise.all([
+      new WebScanner(workspaceRoot).scan(detection.framework),
+      new ApiScanner(workspaceRoot).scan(detection.framework),
+      new CliScanner(workspaceRoot).scan(),
+      this.listSourceFiles(),
+    ]);
+    structure.web = web;
+    structure.api = api;
+    structure.cli = cli;
+    structure.sourceFileCount = files.length;
+    structure.sourceFiles = files.slice(0, 40);
 
     options.onProgress?.('Scan complete.');
     return structure;
+  }
+
+  private async listSourceFiles(): Promise<string[]> {
+    const uris = await vscode.workspace.findFiles(
+      '**/*.{ts,tsx,js,jsx,mjs,cjs,vue,svelte,html,py}',
+      SCAN_EXCLUDE,
+      400,
+    );
+    return uris
+      .map((uri) => vscode.workspace.asRelativePath(uri, false))
+      .filter((file) => !file.startsWith('dist/') && !file.includes('node_modules'))
+      .sort();
   }
 
   private async readJson(root: string, file: string): Promise<Record<string, unknown> | undefined> {

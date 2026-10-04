@@ -22,51 +22,58 @@
     "quality"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onView:neurocodeDashboard"
   ],
-  "main": "./dist/extension.js",
+  "main": "./dist/extension/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "neurocode.scanProject",
-        "title": "NeuroCode: Scan Project"
+        "title": "NeuroCode: Scan Project",
+        "icon": "$(search)"
       },
       {
         "command": "neurocode.generateTests",
-        "title": "NeuroCode: Generate Test Cases"
+        "title": "NeuroCode: Generate Test Cases",
+        "icon": "$(sparkle)"
       },
       {
         "command": "neurocode.runTests",
-        "title": "NeuroCode: Run Tests"
+        "title": "NeuroCode: Run Tests",
+        "icon": "$(play)"
       },
       {
         "command": "neurocode.rerunFailed",
-        "title": "NeuroCode: Rerun Failed Tests"
+        "title": "NeuroCode: Rerun Failed Tests",
+        "icon": "$(debug-restart)"
       },
       {
         "command": "neurocode.showDashboard",
-        "title": "NeuroCode: Show QA Dashboard"
+        "title": "NeuroCode: Show QA Dashboard",
+        "icon": "$(layout-sidebar-left)"
       },
       {
         "command": "neurocode.exportReport",
-        "title": "NeuroCode: Export Report"
+        "title": "NeuroCode: Export Report",
+        "icon": "$(export)"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "neurocode-activity",
+          "id": "neurocode-qa",
           "title": "NeuroCode",
           "icon": "assets/icon.svg"
         }
       ]
     },
     "views": {
-      "neurocode-activity": [
+      "neurocode-qa": [
         {
-          "id": "neurocode.sidebar",
-          "name": "QA Pipeline",
-          "icon": "assets/icon.svg"
+          "type": "webview",
+          "id": "neurocodeDashboard",
+          "name": "QA Pipeline"
         }
       ]
     },
@@ -74,13 +81,23 @@
       "view/title": [
         {
           "command": "neurocode.scanProject",
-          "when": "view == neurocode.sidebar",
-          "group": "navigation"
+          "when": "view == neurocodeDashboard",
+          "group": "navigation@1"
         },
         {
-          "command": "neurocode.showDashboard",
-          "when": "view == neurocode.sidebar",
-          "group": "navigation"
+          "command": "neurocode.generateTests",
+          "when": "view == neurocodeDashboard",
+          "group": "navigation@2"
+        },
+        {
+          "command": "neurocode.runTests",
+          "when": "view == neurocodeDashboard",
+          "group": "navigation@3"
+        },
+        {
+          "command": "neurocode.exportReport",
+          "when": "view == neurocodeDashboard",
+          "group": "navigation@4"
         }
       ]
     },
@@ -123,14 +140,15 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile && npm run build:webview",
+    "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "build:webview": "node esbuild.mjs",
     "watch:webview": "node esbuild.mjs --watch",
     "dev": "npm run build:webview && npm run compile",
     "package": "npm run dev && vsce package",
-    "lint": "tsc --noEmit -p ./"
+    "lint": "tsc --noEmit -p ./",
+    "test:extension": "node test/launch.js"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

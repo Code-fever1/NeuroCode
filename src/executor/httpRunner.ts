@@ -1,4 +1,4 @@
-import { HttpSpec, TestCase, TestResult } from '../shared/types';
+import { HttpSpec, TestCase, TestCategory, TestResult } from '../shared/types';
 import { ExecutionContext, ExecutionEngine } from './engine';
 
 /**
@@ -27,27 +27,17 @@ export class HttpRunner implements ExecutionEngine {
 
       const durationMs = Date.now() - started;
       const responseBody = await response.text();
-
-      const ok = response.ok;
-      const statusPass = ok || response.status < 500;
-
-      // Heuristic: 5xx responses are always failures; 4xx may be the
-      // expected outcome of negative tests, verified against the expectation text.
-      const mentions4xx = /4\d\d|400|401|403|404|422|reject|invalid|error/i.test(test.expected);
-      const pass = ok || (mentions4xx && response.status >= 400 && response.status < 500);
-
+      const verdict = judgeHttp(test.category, test.expected, response.status);
       const diff = this.buildDiff(test, response.status, responseBody);
 
       return {
         testId: test.id,
-        status: pass ? 'passed' : 'failed',
+        status: verdict.pass ? 'passed' : 'failed',
         durationMs,
-        message: pass
-          ? `${spec.method} ${spec.url} -> ${response.status}`
-          : `${spec.method} ${spec.url} returned ${response.status} (${statusPass ? 'unexpected 4xx' : 'server error'})`,
+        message: `${spec.method} ${spec.url} -> ${response.status}. ${verdict.reason}`,
         evidence: {
           responseDiff: diff,
-          error: pass ? undefined : `HTTP ${response.status}`,
+          error: verdict.pass ? undefined : `HTTP ${response.status}: ${verdict.reason}`,
         },
       };
     } catch (err) {
@@ -71,4 +61,31 @@ export class HttpRunner implements ExecutionEngine {
       truncated || '(empty)',
     ].join('\n');
   }
+}
+
+/**
+ * A 2xx is success. A negative case passes only when the server rejects it.
+ * A 5xx fails every category, including boundary checks that only require "no crash".
+ */
+function judgeHttp(category: TestCategory, expected: string, status: number): { pass: boolean; reason: string } {
+  if (status >= 500) {
+    return { pass: false, reason: 'Server error. A test must never accept a 500.' };
+  }
+
+  const wantsRejection = category === 'negative' || (category !== 'boundary' && /\b(400|401|403|404|422|reject)\b/i.test(expected));
+  if (wantsRejection) {
+    const rejected = status >= 400 && status < 500;
+    return rejected
+      ? { pass: true, reason: 'Rejected as expected.' }
+      : { pass: false, reason: `Expected a 4xx rejection, got ${status}.` };
+  }
+
+  if (category === 'boundary') {
+    return { pass: true, reason: 'No server error.' };
+  }
+
+  const ok = status >= 200 && status < 300;
+  return ok
+    ? { pass: true, reason: 'Success status.' }
+    : { pass: false, reason: `Expected a 2xx success, got ${status}.` };
 }

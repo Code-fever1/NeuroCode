@@ -37,6 +37,10 @@ export function toMarkdown(report: TestReport, tests: TestCase[]): string {
     const badge =
       result.status === 'passed' ? 'PASS' : result.status === 'failed' ? 'FAIL' : result.status === 'error' ? 'ERROR' : 'SKIP';
     lines.push(`- [${badge}] ${title} — ${result.message ?? ''} (${(result.durationMs / 1000).toFixed(2)}s)`);
+    if (test?.description) lines.push(`  - What it tests: ${test.description}`);
+    for (const step of test?.steps ?? []) {
+      lines.push(`  - ${step.type}: ${step.description}`);
+    }
     if (result.evidence?.error) {
       lines.push(`  - Error: \`${result.evidence.error.split('\n')[0]}\``);
     }
